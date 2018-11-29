@@ -186,7 +186,8 @@ ct: internal-build
 REVISION:
 	@git rev-parse HEAD > $@
 
-eunit:
+eunit: KIND=test
+eunit: internal-build
 	@ERL_FLAGS="-args_file $(EUNIT_VM_ARGS)" $(REBAR) do eunit $(EUNIT_TEST_FLAGS)
 
 all-tests: eunit test
