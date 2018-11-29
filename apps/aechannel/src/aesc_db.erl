@@ -5,6 +5,8 @@
 
 create_tables(Mode) ->
     Specs = lists:flatten([M:table_specs(Mode) || M <- modules()]),
+    Limit = erlang:system_info(ets_limit),
+    lager:warning("Current ETS table limit: ~p", [Limit]),
     [{atomic, ok} = mnesia:create_table(Tab, Spec)
      || {Tab, Spec} <- Specs].
 
