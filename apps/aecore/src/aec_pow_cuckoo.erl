@@ -80,7 +80,7 @@ generate(Data, Target, Nonce) when Nonce >= 0,
            [Hash, Nonce, Target]),
 
     case generate_int(Hash64, Nonce, Target) of
-        {ok, Soln} ->
+        {ok, Nonce, Soln} ->
             {ok, {Nonce, Soln}};
         {error, no_value} ->
             ?debug("No cuckoo solution found", []),
@@ -418,15 +418,27 @@ handle_fragmented_lines(Str, Buffer) ->
                                      {'error', term()}.
 parse_generation_result([], State) ->
     wait_for_result(State);
-parse_generation_result(["Solution" ++ ValuesStr | Rest], #state{os_pid = OsPid,
+parse_generation_result(["Solution" ++ NonceValuesStr | Rest], #state{os_pid = OsPid,
                                                                  target = Target} = State) ->
-    Soln = [list_to_integer(V, 16) || V <- string:tokens(ValuesStr, " ")],
-    case test_target(Soln, Target) of
-        true ->
-            ?debug("Solution found: ~p", [Soln]),
+    [NonceStr | SolStrs] =  string:tokens(NonceValuesStr, " "),
+    Soln = [list_to_integer(V, 16) || V <- SolStrs],
+    case {length(Soln), test_target(Soln, Target)} of
+        {42, true} ->
             stop_execution(OsPid),
-            {ok, Soln};
-        false ->
+            case parse_nonce_str(NonceStr) of
+                {ok, Nonce} ->
+                    ?debug("Solution found: ~p", [Soln]),
+                    {ok, Nonce, Soln};
+                Err = {error, _} ->
+                    ?debug("Bad nonce: ~p", [Err]),
+                    Err
+            end;
+        {N, _} when N /= 42 ->
+            %% No nonce in solution, old miner executable?
+            ?debug("Solution has wrong length (~p) should be 42", [N]),
+            stop_execution(OsPid),
+            {error, bad_miner};
+        {_, false} ->
             %% failed to meet target: go on, we may find another solution
             ?debug("Failed to meet target (~p)", [Target]),
             parse_generation_result(Rest, State)
@@ -434,6 +446,11 @@ parse_generation_result(["Solution" ++ ValuesStr | Rest], #state{os_pid = OsPid,
 parse_generation_result([Msg | T], State) ->
     ?debug("~s", [Msg]),
     parse_generation_result(T, State).
+
+parse_nonce_str(S) ->
+    try {ok, list_to_integer(string:trim(S, both, "()"), 16)}
+    catch _:_ -> {error, bad_nonce} end.
+
 
 %%------------------------------------------------------------------------------
 %% @doc
