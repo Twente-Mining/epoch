@@ -169,7 +169,7 @@ references:
       name: Send failure notification
       environment:
         NOTIFY_BRANCH: master
-        NOTIFY_BRANCH_2: PT-162452107-ci-next
+        NOTIFY_BRANCH_2: *next_branch
         HOOK_TEMPLATE: |
           {
             "text": "CircleCI job **%s** failed on branch **%s** by @%s",
@@ -195,7 +195,7 @@ references:
       name: Send failure notification on system test
       environment:
         NOTIFY_BRANCH: master
-        NOTIFY_BRANCH_2: PT-162452107-ci-next
+        NOTIFY_BRANCH_2: *next_branch
         HOOK_TEMPLATE: |
           {
             "text": "CircleCI job **%s** failed on branch **%s** by @%s",
